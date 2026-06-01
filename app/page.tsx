@@ -190,53 +190,61 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Tags Dropdown */}
+          {/* Tags */}
           {allTags.length > 0 && (
             <div className="mb-6">
               <p className="text-[#7a5c5c] text-xs tracking-wide mb-2">tags</p>
               <div className="relative inline-block" ref={tagDropdownRef}>
-                <button
-                  onClick={() => setTagDropdownOpen(!tagDropdownOpen)}
-                  className={`px-5 py-2 rounded-full text-sm tracking-wide transition-all flex items-center gap-2 ${
-                    tagFilter
-                      ? "bg-[#e8b4b8] text-white"
-                      : "bg-white text-[#7a5c5c] border border-[#e8d5d5] hover:border-[#e8b4b8]"
-                  }`}
-                >
-                  {tagFilter || "select tag"}
-                  <svg
-                    className={`w-3 h-3 transition-transform ${tagDropdownOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="type or select a tag"
+                    value={tagFilter || ""}
+                    onChange={(e) => {
+                      setTagFilter(e.target.value.toLowerCase() || null);
+                      setSuggestion(null);
+                      setHasSearched(false);
+                    }}
+                    onFocus={() => setTagDropdownOpen(true)}
+                    className="px-5 py-2 rounded-full text-sm tracking-wide bg-white text-[#7a5c5c] border border-[#e8d5d5] focus:outline-none focus:border-[#e8b4b8] placeholder:text-[#d4c0c0] w-48"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setTagDropdownOpen(!tagDropdownOpen)}
+                    className="px-3 py-2 rounded-full text-sm transition-all bg-white text-[#7a5c5c] border border-[#e8d5d5] hover:border-[#e8b4b8]"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
+                    <svg className={`w-3 h-3 transition-transform ${tagDropdownOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
 
                 {tagDropdownOpen && (
-                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-lg border border-[#f0e0e0] py-2 z-10 min-w-[160px] max-h-48 overflow-y-auto">
-                    {tagFilter && (
-                      <button
-                        onClick={() => selectTag(tagFilter)}
-                        className="w-full text-left px-4 py-2 text-sm text-[#c48a8a] hover:bg-[#fdf6f7] transition-all"
-                      >
-                        clear tag
-                      </button>
+                  <div className="absolute top-full mt-2 left-0 bg-white rounded-2xl shadow-lg border border-[#f0e0e0] py-2 z-10 min-w-[160px] max-h-48 overflow-y-auto">
+                    {allTags
+                      .filter((tag) => tag.includes(tagFilter || ""))
+                      .map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => {
+                            setTagFilter(tag);
+                            setTagDropdownOpen(false);
+                            setSuggestion(null);
+                            setHasSearched(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm transition-all ${
+                            tagFilter === tag
+                              ? "bg-[#fdf6f7] text-[#e8b4b8]"
+                              : "text-[#7a5c5c] hover:bg-[#fdf6f7]"
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    {allTags.filter((tag) => tag.includes(tagFilter || "")).length === 0 && (
+                      <p className="px-4 py-2 text-xs text-[#c4a4a4]">no matching tags</p>
                     )}
-                    {allTags.map((tag) => (
-                      <button
-                        key={tag}
-                        onClick={() => selectTag(tag)}
-                        className={`w-full text-left px-4 py-2 text-sm transition-all ${
-                          tagFilter === tag
-                            ? "bg-[#fdf6f7] text-[#e8b4b8]"
-                            : "text-[#7a5c5c] hover:bg-[#fdf6f7]"
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    ))}
                   </div>
                 )}
               </div>
@@ -264,7 +272,6 @@ export default function Home() {
 
           {suggestion && (
             <div className="mt-6 bg-[#fdf6f7] rounded-2xl p-5 border border-[#f0d5d5] text-left max-w-sm mx-auto">
-              
               <p className="text-lg text-[#6b4e4e] mt-1" style={{ fontWeight: 400 }}>
                 {suggestion.title}
               </p>
@@ -307,7 +314,6 @@ export default function Home() {
               key={item.id}
               className="bg-[#fdf6f7] rounded-2xl p-5 border border-[#f0d5d5] hover:bg-[#fdf2f3] transition-all"
             >
-              <p className="text-[10px] text-[#c48a8a] tracking-widest uppercase">{item.category}</p>
               <p className="text-lg text-[#6b4e4e] mt-1" style={{ fontWeight: 400 }}>
                 {item.title}
               </p>
@@ -330,19 +336,19 @@ export default function Home() {
       </div>
 
       {/* Credits Footer */}
-<footer className="text-center mt-20">
-  <p className="text-xs text-[#b8a0a0]">
-    made with love by{" "}
-    <a
-      href="https://github.com/silviasmine"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-[#8b6b6b] hover:text-[#6b4e4e] underline underline-offset-2 transition-all"
-    >
-      silvia
-    </a>
-  </p>
-</footer>
+      <footer className="text-center mt-20">
+        <p className="text-xs text-[#b8a0a0]">
+          made with love by{" "}
+          <a
+            href="https://github.com/silviasmine"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#8b6b6b] hover:text-[#6b4e4e] underline underline-offset-2 transition-all"
+          >
+            silvia
+          </a>
+        </p>
+      </footer>
     </main>
   );
 }
