@@ -1,20 +1,23 @@
-import Filter from "bad-words";
-
-const filter = new Filter();
-
-// Add custom words to block (violent, political, harmful content)
-const additionalBlockedWords = [
+// Blocked words list
+const blockedWords = [
+  // profanity
+  "fuck",
+  "shit",
+  "ass",
+  "bitch",
+  "damn",
+  "crap",
+  "dick",
+  "piss",
+  "slut",
+  "whore",
+  "bastard",
+  // violence
   "violence",
   "violent",
   "kill",
-  "diddy",
-  "epstein",
   "murder",
   "attack",
-  "rape",
-  "gang",
-  "communism",
-  "sociaism",
   "weapon",
   "gun",
   "bomb",
@@ -25,17 +28,24 @@ const additionalBlockedWords = [
   "racist",
   "racism",
   "hate",
+  "rape",
+  "stab",
+  "shoot",
+  "massacre",
+  "genocide",
+  "torture",
+  // political
   "political",
   "politic",
   "election",
-  "vote",
-  "party",
   "republican",
   "democrat",
   "conservative",
   "liberal",
   "trump",
   "biden",
+  "diddy",
+  "epstein",
   "government",
   "protest",
   "riot",
@@ -43,14 +53,31 @@ const additionalBlockedWords = [
   "manifesto",
   "extremist",
   "propaganda",
+  "leftist",
+  "rightist",
+  "socialist",
+  "capitalist",
+  "communist",
+  "fascist",
 ];
 
-filter.addWords(...additionalBlockedWords);
+function normalize(text: string): string {
+  return text.toLowerCase().replace(/[^a-z]/g, "");
+}
 
 export function isClean(text: string): boolean {
-  return !filter.isProfane(text);
+  const normalized = normalize(text);
+  return !blockedWords.some((word) => {
+    const nWord = normalize(word);
+    return normalized.includes(nWord);
+  });
 }
 
 export function cleanText(text: string): string {
-  return filter.clean(text);
+  let result = text;
+  blockedWords.forEach((word) => {
+    const regex = new RegExp(word, "gi");
+    result = result.replace(regex, "***");
+  });
+  return result;
 }
