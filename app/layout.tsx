@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Silvia's Dopamine Menu",
-  description: "Small things to spark joy when you're running low.",
+  description: "cool girls touch grass.",
 };
 
 export default function RootLayout({
