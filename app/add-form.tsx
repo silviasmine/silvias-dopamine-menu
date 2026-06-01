@@ -79,6 +79,7 @@ export default function AddForm({ onAdded }: { onAdded: () => void }) {
     setTimeRequired("");
     setIsOpen(false);
     onAdded();
+    fetchExistingTags();
   }
 
   function resetForm() {
