@@ -28,7 +28,7 @@ export default function FeedbackForm() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="text-xs text-[#c4a4a4] hover:text-[#8b6b6b] underline underline-offset-2 transition-all mt-8"
+        className="text-xs text-[#b8a0a0] hover:text-[#8b6b6b] underline underline-offset-2 transition-all"
       >
         send feedback
       </button>

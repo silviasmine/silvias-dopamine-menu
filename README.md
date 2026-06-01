@@ -29,6 +29,12 @@ this is a list of every menu item we have on the website right now. you can also
 
 ---
 
+## send feedback
+
+you can now send me private feedback directly from the website. your message goes straight to my database and only i can see it.
+
+---
+
 ## tech stack for my developer kids
 
 - **next.js** — react framework

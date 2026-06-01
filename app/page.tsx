@@ -336,9 +336,13 @@ export default function Home() {
         </div>
       </div>
 
-      <FeedbackForm />
+            {/* Feedback */}
+      <div className="text-center mt-16">
+        <FeedbackForm />
+      </div>
+
       {/* Credits Footer */}
-      <footer className="text-center mt-20">
+      <footer className="text-center mt-4">
         <p className="text-xs text-[#b8a0a0]">
           made with love by{" "}
           <a
