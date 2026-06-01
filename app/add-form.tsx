@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { isClean } from "@/lib/content-filter";
 
 export default function AddForm({ onAdded }: { onAdded: () => void }) {
   const [title, setTitle] = useState("");
@@ -64,6 +65,13 @@ export default function AddForm({ onAdded }: { onAdded: () => void }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!energyLevel) return;
+
+      // Content filter check
+  const textToCheck = [title, ...tags].join(" ");
+  if (!isClean(textToCheck)) {
+    alert("please keep it kind. your item contains words that aren't allowed.");
+    return;
+  }
 
     await supabase.from("menu_items").insert({
       title: title.toLowerCase(),

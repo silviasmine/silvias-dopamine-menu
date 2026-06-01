@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { isClean } from "@/lib/content-filter";
 
 export default function FeedbackForm() {
   const [message, setMessage] = useState("");
@@ -11,6 +12,12 @@ export default function FeedbackForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!message.trim()) return;
+
+    if (!isClean(message)) {
+      alert("please keep it kind. your message contains words that aren't allowed.");
+      return;
+    }
+
 
     await supabase.from("feedback").insert({
       message: message.trim(),
