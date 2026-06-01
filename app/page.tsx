@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import AddForm from "./add-form";
 
@@ -17,20 +17,32 @@ export default function Home() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [suggestion, setSuggestion] = useState<MenuItem | null>(null);
   const [energyFilter, setEnergyFilter] = useState<string | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<string | null>(null);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [allTags, setAllTags] = useState<string[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+  const tagDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchItems();
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(e.target as Node)) {
+        setTagDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   async function fetchItems() {
     const { data } = await supabase.from("menu_items").select("*");
     if (data) {
       setItems(data);
-      // Collect all unique tags
       const tagsSet = new Set<string>();
       data.forEach((item: MenuItem) => {
         if (item.tags) {
@@ -41,44 +53,61 @@ export default function Home() {
     }
   }
 
-  function toggleFilter(
-    type: "energy" | "category" | "time" | "tag",
-    value: string
-  ) {
+  function toggleFilter(type: "energy" | "time", value: string) {
     if (type === "energy") {
       setEnergyFilter(energyFilter === value ? null : value);
-    } else if (type === "category") {
-      setCategoryFilter(categoryFilter === value ? null : value);
     } else if (type === "time") {
       setTimeFilter(timeFilter === value ? null : value);
-    } else if (type === "tag") {
-      setTagFilter(tagFilter === value ? null : value);
     }
+    setSuggestion(null);
+    setHasSearched(false);
   }
 
-  async function getSuggestion() {
-    let query = supabase.from("menu_items").select("*");
+  function selectTag(tag: string) {
+    setTagFilter(tagFilter === tag ? null : tag);
+    setTagDropdownOpen(false);
+    setSuggestion(null);
+    setHasSearched(false);
+  }
+
+  function getFilteredItems(): MenuItem[] {
+    let filtered = [...items];
 
     if (energyFilter) {
-      query = query.eq("energy_level", energyFilter);
-    }
-    if (categoryFilter) {
-      query = query.eq("category", categoryFilter);
+      filtered = filtered.filter((item) => item.energy_level === energyFilter);
     }
     if (timeFilter === "quick") {
-      query = query.lte("time_required", 5);
+      filtered = filtered.filter(
+        (item) => item.time_required !== null && item.time_required <= 5
+      );
     } else if (timeFilter === "short") {
-      query = query.gte("time_required", 5).lte("time_required", 15);
+      filtered = filtered.filter(
+        (item) =>
+          item.time_required !== null &&
+          item.time_required >= 5 &&
+          item.time_required <= 15
+      );
     } else if (timeFilter === "long") {
-      query = query.gte("time_required", 15);
+      filtered = filtered.filter(
+        (item) => item.time_required !== null && item.time_required >= 15
+      );
     }
     if (tagFilter) {
-      query = query.ilike("tags", `%${tagFilter}%`);
+      filtered = filtered.filter(
+        (item) =>
+          item.tags &&
+          item.tags.toLowerCase().includes(tagFilter.toLowerCase())
+      );
     }
 
-    const { data } = await query;
-    if (data && data.length > 0) {
-      const random = data[Math.floor(Math.random() * data.length)];
+    return filtered;
+  }
+
+  function startSearching() {
+    setHasSearched(true);
+    const filtered = getFilteredItems();
+    if (filtered.length > 0) {
+      const random = filtered[Math.floor(Math.random() * filtered.length)];
       setSuggestion(random);
     } else {
       setSuggestion(null);
@@ -86,18 +115,19 @@ export default function Home() {
   }
 
   function hasActiveFilters() {
-    return energyFilter || categoryFilter || timeFilter || tagFilter;
+    return energyFilter || timeFilter || tagFilter;
   }
 
   function clearAllFilters() {
     setEnergyFilter(null);
-    setCategoryFilter(null);
     setTimeFilter(null);
     setTagFilter(null);
+    setSuggestion(null);
+    setHasSearched(false);
   }
 
   return (
-    <main className="min-h-screen bg-[#faf7f4] p-8">
+    <main className="min-h-screen bg-[#faf7f4] p-8 pb-20">
       <div className="max-w-4xl mx-auto text-center">
         {/* Header */}
         <h1
@@ -107,13 +137,13 @@ export default function Home() {
           silvia&apos;s dopamine menu
         </h1>
 
-        {/* Suggestion Section */}
+        {/* Search Section */}
         <div className="bg-white/60 backdrop-blur-sm rounded-3xl shadow-sm border border-[#f0e0e0] p-8 mb-10 text-center">
           <p
             className="text-3xl text-[#c48a8a] mb-6"
             style={{ fontFamily: "'Sacramento', cursive" }}
           >
-            place your order here:
+            search for an item on our dopamine list!
           </p>
 
           {/* Energy Level */}
@@ -131,26 +161,6 @@ export default function Home() {
                   }`}
                 >
                   {level.toLowerCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Category */}
-          <div className="mb-5">
-            <p className="text-[#7a5c5c] text-xs tracking-wide mb-2">type</p>
-            <div className="flex gap-2 flex-wrap justify-center">
-              {["STARTER", "MAIN", "SIDE", "DESSERT", "SPECIAL"].map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => toggleFilter("category", cat)}
-                  className={`px-5 py-2 rounded-full text-sm tracking-wide transition-all ${
-                    categoryFilter === cat
-                      ? "bg-[#e8b4b8] text-white"
-                      : "bg-white text-[#7a5c5c] border border-[#e8d5d5] hover:border-[#e8b4b8]"
-                  }`}
-                >
-                  {cat.toLowerCase()}
                 </button>
               ))}
             </div>
@@ -180,24 +190,55 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Tags */}
+          {/* Tags Dropdown */}
           {allTags.length > 0 && (
             <div className="mb-6">
               <p className="text-[#7a5c5c] text-xs tracking-wide mb-2">tags</p>
-              <div className="flex gap-2 flex-wrap justify-center">
-                {allTags.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleFilter("tag", tag)}
-                    className={`px-4 py-1.5 rounded-full text-xs tracking-wide transition-all ${
-                      tagFilter === tag
-                        ? "bg-[#e8b4b8] text-white"
-                        : "bg-white text-[#7a5c5c] border border-[#e8d5d5] hover:border-[#e8b4b8]"
-                    }`}
+              <div className="relative inline-block" ref={tagDropdownRef}>
+                <button
+                  onClick={() => setTagDropdownOpen(!tagDropdownOpen)}
+                  className={`px-5 py-2 rounded-full text-sm tracking-wide transition-all flex items-center gap-2 ${
+                    tagFilter
+                      ? "bg-[#e8b4b8] text-white"
+                      : "bg-white text-[#7a5c5c] border border-[#e8d5d5] hover:border-[#e8b4b8]"
+                  }`}
+                >
+                  {tagFilter || "select tag"}
+                  <svg
+                    className={`w-3 h-3 transition-transform ${tagDropdownOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    {tag}
-                  </button>
-                ))}
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {tagDropdownOpen && (
+                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white rounded-2xl shadow-lg border border-[#f0e0e0] py-2 z-10 min-w-[160px] max-h-48 overflow-y-auto">
+                    {tagFilter && (
+                      <button
+                        onClick={() => selectTag(tagFilter)}
+                        className="w-full text-left px-4 py-2 text-sm text-[#c48a8a] hover:bg-[#fdf6f7] transition-all"
+                      >
+                        clear tag
+                      </button>
+                    )}
+                    {allTags.map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => selectTag(tag)}
+                        className={`w-full text-left px-4 py-2 text-sm transition-all ${
+                          tagFilter === tag
+                            ? "bg-[#fdf6f7] text-[#e8b4b8]"
+                            : "text-[#7a5c5c] hover:bg-[#fdf6f7]"
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -214,25 +255,25 @@ export default function Home() {
 
           <div className="border-t border-[#f0e5e5] pt-6">
             <button
-              onClick={getSuggestion}
+              onClick={startSearching}
               className="bg-[#e8b4b8] hover:bg-[#d49b9b] text-white px-7 py-2.5 rounded-full text-sm tracking-wide transition-all"
             >
-              surprise me
+              start searching
             </button>
           </div>
 
           {suggestion && (
-            <div className="mt-6 p-6 bg-[#fdf6f7] rounded-2xl border border-[#f0d5d5] text-left">
-              <p className="text-xs text-[#c48a8a] tracking-widest uppercase">{suggestion.category}</p>
-              <p className="text-2xl text-[#6b4e4e] mt-2" style={{ fontWeight: 400 }}>
+            <div className="mt-6 bg-[#fdf6f7] rounded-2xl p-5 border border-[#f0d5d5] text-left max-w-sm mx-auto">
+              <p className="text-[10px] text-[#c48a8a] tracking-widest uppercase">{suggestion.category}</p>
+              <p className="text-lg text-[#6b4e4e] mt-1" style={{ fontWeight: 400 }}>
                 {suggestion.title}
               </p>
-              <div className="flex gap-4 mt-3 text-xs text-[#7a5c5c] tracking-wide">
+              <div className="flex gap-3 mt-2 text-xs text-[#7a5c5c] tracking-wide">
                 <span>{suggestion.energy_level.toLowerCase()}</span>
                 {suggestion.time_required && <span>{suggestion.time_required} min</span>}
               </div>
               {suggestion.tags && (
-                <div className="flex gap-2 mt-3 flex-wrap">
+                <div className="flex gap-1.5 mt-2 flex-wrap">
                   {suggestion.tags.split(",").map((tag) => (
                     <span key={tag} className="bg-white/80 px-3 py-1 rounded-full text-xs text-[#7a5c5c]">
                       {tag.trim()}
@@ -243,19 +284,19 @@ export default function Home() {
             </div>
           )}
 
-          {hasActiveFilters() && !suggestion && (
+          {hasSearched && !suggestion && (
             <p className="mt-6 text-sm text-[#c48a8a]">
               no items match these filters. try broadening your search.
             </p>
           )}
         </div>
 
-        {/* Favorites Section */}
+        {/* The Menu Section */}
         <p
           className="text-4xl text-[#6b4e4e] mb-4"
           style={{ fontFamily: "'Sacramento', cursive" }}
         >
-          silvia&apos;s favorites
+          the menu
         </p>
 
         <AddForm onAdded={fetchItems} />
@@ -264,7 +305,7 @@ export default function Home() {
           {items.map((item) => (
             <div
               key={item.id}
-              className="bg-white/50 rounded-2xl p-5 border border-[#f0e0e0] hover:bg-white/80 transition-all"
+              className="bg-[#fdf6f7] rounded-2xl p-5 border border-[#f0d5d5] hover:bg-[#fdf2f3] transition-all"
             >
               <p className="text-[10px] text-[#c48a8a] tracking-widest uppercase">{item.category}</p>
               <p className="text-lg text-[#6b4e4e] mt-1" style={{ fontWeight: 400 }}>
@@ -274,10 +315,34 @@ export default function Home() {
                 <span>{item.energy_level.toLowerCase()}</span>
                 {item.time_required && <span>{item.time_required} min</span>}
               </div>
+              {item.tags && (
+                <div className="flex gap-1.5 mt-2 flex-wrap">
+                  {item.tags.split(",").map((tag) => (
+                    <span key={tag} className="bg-white/70 px-2.5 py-0.5 rounded-full text-xs text-[#7a5c5c]">
+                      {tag.trim()}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
       </div>
+
+      {/* Credits Footer */}
+<footer className="text-center mt-20">
+  <p className="text-xs text-[#b8a0a0]">
+    made with love by{" "}
+    <a
+      href="https://github.com/silviasmine"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-[#8b6b6b] hover:text-[#6b4e4e] underline underline-offset-2 transition-all"
+    >
+      silvia
+    </a>
+  </p>
+</footer>
     </main>
   );
 }
