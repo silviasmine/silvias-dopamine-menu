@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import AddForm from "./add-form";
+import FeedbackForm from "./feedback-form";
 
 type MenuItem = {
   id: number;
@@ -335,6 +336,7 @@ export default function Home() {
         </div>
       </div>
 
+      <FeedbackForm />
       {/* Credits Footer */}
       <footer className="text-center mt-20">
         <p className="text-xs text-[#b8a0a0]">
