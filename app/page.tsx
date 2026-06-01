@@ -264,7 +264,7 @@ export default function Home() {
 
           {suggestion && (
             <div className="mt-6 bg-[#fdf6f7] rounded-2xl p-5 border border-[#f0d5d5] text-left max-w-sm mx-auto">
-              <p className="text-[10px] text-[#c48a8a] tracking-widest uppercase">{suggestion.category}</p>
+              
               <p className="text-lg text-[#6b4e4e] mt-1" style={{ fontWeight: 400 }}>
                 {suggestion.title}
               </p>

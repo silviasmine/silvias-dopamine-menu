@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase";
 
 export default function AddForm({ onAdded }: { onAdded: () => void }) {
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
   const [energyLevel, setEnergyLevel] = useState("");
   const [timeRequired, setTimeRequired] = useState("");
   const [tags, setTags] = useState<string[]>([]);
@@ -33,18 +32,17 @@ export default function AddForm({ onAdded }: { onAdded: () => void }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!category || !energyLevel) return;
+    if (!energyLevel) return;
 
     await supabase.from("menu_items").insert({
       title: title.toLowerCase(),
-      category: category,
+      category: "general",
       energy_level: energyLevel,
       time_required: timeRequired ? parseInt(timeRequired) : null,
       tags: tags.length > 0 ? tags.join(",") : null,
       is_public: true,
     });
     setTitle("");
-    setCategory("");
     setEnergyLevel("");
     setTags([]);
     setTimeRequired("");
@@ -54,7 +52,6 @@ export default function AddForm({ onAdded }: { onAdded: () => void }) {
 
   function resetForm() {
     setTitle("");
-    setCategory("");
     setEnergyLevel("");
     setTags([]);
     setTimeRequired("");
@@ -85,33 +82,17 @@ export default function AddForm({ onAdded }: { onAdded: () => void }) {
         className="w-full p-3 bg-white/80 border border-[#f0e0e0] rounded-xl mb-3 text-[#6b4e4e] placeholder:text-[#d4c0c0] focus:outline-none focus:border-[#e8b4b8]"
       />
 
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          required
-          className="p-3 bg-white/80 border border-[#f0e0e0] rounded-xl text-[#6b4e4e] focus:outline-none focus:border-[#e8b4b8]"
-        >
-          <option value="">select item type</option>
-          <option value="STARTER">starter</option>
-          <option value="MAIN">main</option>
-          <option value="SIDE">side</option>
-          <option value="DESSERT">dessert</option>
-          <option value="SPECIAL">special</option>
-        </select>
-
-        <select
-          value={energyLevel}
-          onChange={(e) => setEnergyLevel(e.target.value)}
-          required
-          className="p-3 bg-white/80 border border-[#f0e0e0] rounded-xl text-[#6b4e4e] focus:outline-none focus:border-[#e8b4b8]"
-        >
-          <option value="">select energy level</option>
-          <option value="LOW">low</option>
-          <option value="MEDIUM">medium</option>
-          <option value="HIGH">high</option>
-        </select>
-      </div>
+      <select
+        value={energyLevel}
+        onChange={(e) => setEnergyLevel(e.target.value)}
+        required
+        className="w-full p-3 bg-white/80 border border-[#f0e0e0] rounded-xl mb-3 text-[#6b4e4e] focus:outline-none focus:border-[#e8b4b8]"
+      >
+        <option value="">select energy level</option>
+        <option value="LOW">low</option>
+        <option value="MEDIUM">medium</option>
+        <option value="HIGH">high</option>
+      </select>
 
       <input
         type="number"
