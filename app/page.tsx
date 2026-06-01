@@ -16,7 +16,11 @@ type MenuItem = {
 export default function Home() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [suggestion, setSuggestion] = useState<MenuItem | null>(null);
-  const [energyFilter, setEnergyFilter] = useState<string>("");
+  const [energyFilter, setEnergyFilter] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [timeFilter, setTimeFilter] = useState<string | null>(null);
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   useEffect(() => {
     fetchItems();
@@ -24,19 +28,72 @@ export default function Home() {
 
   async function fetchItems() {
     const { data } = await supabase.from("menu_items").select("*");
-    if (data) setItems(data);
+    if (data) {
+      setItems(data);
+      // Collect all unique tags
+      const tagsSet = new Set<string>();
+      data.forEach((item: MenuItem) => {
+        if (item.tags) {
+          item.tags.split(",").forEach((tag) => tagsSet.add(tag.trim().toLowerCase()));
+        }
+      });
+      setAllTags(Array.from(tagsSet).sort());
+    }
+  }
+
+  function toggleFilter(
+    type: "energy" | "category" | "time" | "tag",
+    value: string
+  ) {
+    if (type === "energy") {
+      setEnergyFilter(energyFilter === value ? null : value);
+    } else if (type === "category") {
+      setCategoryFilter(categoryFilter === value ? null : value);
+    } else if (type === "time") {
+      setTimeFilter(timeFilter === value ? null : value);
+    } else if (type === "tag") {
+      setTagFilter(tagFilter === value ? null : value);
+    }
   }
 
   async function getSuggestion() {
     let query = supabase.from("menu_items").select("*");
+
     if (energyFilter) {
       query = query.eq("energy_level", energyFilter);
     }
+    if (categoryFilter) {
+      query = query.eq("category", categoryFilter);
+    }
+    if (timeFilter === "quick") {
+      query = query.lte("time_required", 5);
+    } else if (timeFilter === "short") {
+      query = query.gte("time_required", 5).lte("time_required", 15);
+    } else if (timeFilter === "long") {
+      query = query.gte("time_required", 15);
+    }
+    if (tagFilter) {
+      query = query.ilike("tags", `%${tagFilter}%`);
+    }
+
     const { data } = await query;
     if (data && data.length > 0) {
       const random = data[Math.floor(Math.random() * data.length)];
       setSuggestion(random);
+    } else {
+      setSuggestion(null);
     }
+  }
+
+  function hasActiveFilters() {
+    return energyFilter || categoryFilter || timeFilter || tagFilter;
+  }
+
+  function clearAllFilters() {
+    setEnergyFilter(null);
+    setCategoryFilter(null);
+    setTimeFilter(null);
+    setTagFilter(null);
   }
 
   return (
@@ -59,23 +116,101 @@ export default function Home() {
             place your order here:
           </p>
 
-          <p className="text-[#7a5c5c] text-sm mb-3">select energy level</p>
-
-          <div className="flex gap-2 mb-8 flex-wrap justify-center">
-            {["", "LOW", "MEDIUM", "HIGH"].map((level) => (
-              <button
-                key={level}
-                onClick={() => setEnergyFilter(level)}
-                className={`px-5 py-2 rounded-full text-sm tracking-wide transition-all ${
-                  energyFilter === level
-                    ? "bg-[#e8b4b8] text-white"
-                    : "bg-white text-[#7a5c5c] border border-[#e8d5d5] hover:border-[#e8b4b8] hover:text-[#5c3d3d]"
-                }`}
-              >
-                {level === "" ? "any" : level.toLowerCase()}
-              </button>
-            ))}
+          {/* Energy Level */}
+          <div className="mb-5">
+            <p className="text-[#7a5c5c] text-xs tracking-wide mb-2">energy level</p>
+            <div className="flex gap-2 flex-wrap justify-center">
+              {["LOW", "MEDIUM", "HIGH"].map((level) => (
+                <button
+                  key={level}
+                  onClick={() => toggleFilter("energy", level)}
+                  className={`px-5 py-2 rounded-full text-sm tracking-wide transition-all ${
+                    energyFilter === level
+                      ? "bg-[#e8b4b8] text-white"
+                      : "bg-white text-[#7a5c5c] border border-[#e8d5d5] hover:border-[#e8b4b8]"
+                  }`}
+                >
+                  {level.toLowerCase()}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Category */}
+          <div className="mb-5">
+            <p className="text-[#7a5c5c] text-xs tracking-wide mb-2">type</p>
+            <div className="flex gap-2 flex-wrap justify-center">
+              {["STARTER", "MAIN", "SIDE", "DESSERT", "SPECIAL"].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => toggleFilter("category", cat)}
+                  className={`px-5 py-2 rounded-full text-sm tracking-wide transition-all ${
+                    categoryFilter === cat
+                      ? "bg-[#e8b4b8] text-white"
+                      : "bg-white text-[#7a5c5c] border border-[#e8d5d5] hover:border-[#e8b4b8]"
+                  }`}
+                >
+                  {cat.toLowerCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Time */}
+          <div className="mb-5">
+            <p className="text-[#7a5c5c] text-xs tracking-wide mb-2">time</p>
+            <div className="flex gap-2 flex-wrap justify-center">
+              {[
+                { value: "quick", label: "under 5 min" },
+                { value: "short", label: "5-15 min" },
+                { value: "long", label: "15+ min" },
+              ].map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => toggleFilter("time", t.value)}
+                  className={`px-5 py-2 rounded-full text-sm tracking-wide transition-all ${
+                    timeFilter === t.value
+                      ? "bg-[#e8b4b8] text-white"
+                      : "bg-white text-[#7a5c5c] border border-[#e8d5d5] hover:border-[#e8b4b8]"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tags */}
+          {allTags.length > 0 && (
+            <div className="mb-6">
+              <p className="text-[#7a5c5c] text-xs tracking-wide mb-2">tags</p>
+              <div className="flex gap-2 flex-wrap justify-center">
+                {allTags.map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => toggleFilter("tag", tag)}
+                    className={`px-4 py-1.5 rounded-full text-xs tracking-wide transition-all ${
+                      tagFilter === tag
+                        ? "bg-[#e8b4b8] text-white"
+                        : "bg-white text-[#7a5c5c] border border-[#e8d5d5] hover:border-[#e8b4b8]"
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Clear filters */}
+          {hasActiveFilters() && (
+            <button
+              onClick={clearAllFilters}
+              className="text-xs text-[#c48a8a] hover:text-[#6b4e4e] mb-4 transition-all"
+            >
+              clear all filters
+            </button>
+          )}
 
           <div className="border-t border-[#f0e5e5] pt-6">
             <button
@@ -106,6 +241,12 @@ export default function Home() {
                 </div>
               )}
             </div>
+          )}
+
+          {hasActiveFilters() && !suggestion && (
+            <p className="mt-6 text-sm text-[#c48a8a]">
+              no items match these filters. try broadening your search.
+            </p>
           )}
         </div>
 
